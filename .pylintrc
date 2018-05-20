@@ -20,7 +20,3 @@ disable =
 [REPORTS]
 
 reports = no
-
-[TYPECHECK]
-
-generated-members = pyls_*
