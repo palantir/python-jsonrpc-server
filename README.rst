@@ -1,7 +1,7 @@
 Python JSON RPC Server
 ======================
 
-.. image:: https://circleci.com/gh/palantir/python-jsonrpc-server/tree/develop.svg?style=svg
+.. image:: https://circleci.com/gh/palantir/python-jsonrpc-server/tree/develop.svg?style=shield
     :target: https://circleci.com/gh/palantir/python-jsonrpc-server/tree/develop
 
 .. image:: https://ci.appveyor.com/api/projects/status/mdacv6fnif7wonl0?svg=true
