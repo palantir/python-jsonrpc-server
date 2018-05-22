@@ -4,7 +4,7 @@ Python JSON RPC Server
 .. image:: https://circleci.com/gh/palantir/python-jsonrpc-server/tree/develop.svg?style=shield
     :target: https://circleci.com/gh/palantir/python-jsonrpc-server/tree/develop
 
-.. image:: https://ci.appveyor.com/api/projects/status/mdacv6fnif7wonl0?svg=true
+.. image:: https://ci.appveyor.com/api/projects/status/r0jlmvkqwneieeh6/branch/develop?svg=true
     :target: https://ci.appveyor.com/project/gatesn/python-jsonrpc-server
 
 .. image:: https://img.shields.io/github/license/palantir/python-jsonrpc-server.svg
