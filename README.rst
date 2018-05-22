@@ -37,4 +37,5 @@ License
 This project is made available under the MIT License.
 
 .. _JSON RPC 2.0: http://www.jsonrpc.org/specification
+.. _Python Language Server: https://github.com/palantir/python-language-server
 .. _concurrent.futures backport: https://github.com/agronholm/pythonfutures
