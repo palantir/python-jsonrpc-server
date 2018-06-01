@@ -20,9 +20,18 @@ Installation
 
 ``pip install -U python-jsonrpc-server``
 
-Usage
------
+Examples
+--------
 
+The examples directory contains two examples of running language servers over websockets. ``examples/langserver.py`` shows how to run a language server in-memory. ``examples/langserver_ext.py`` shows how to run a subprocess language server, in this case the `Python Language Server`_.
+
+Start by installing `tornado` and `python-language-server`
+
+``pip install python-language-server[all] tornado``
+
+Then running `python examples/langserver.py` or `python examples/langserver_ext.py` will host a websocket on ``ws://localhost:3000/python``.
+
+To setup a client, you can use the examples from `Monaco Language Client`_.
 
 Development
 -----------
@@ -38,3 +47,5 @@ This project is made available under the MIT License.
 
 .. _JSON RPC 2.0: http://www.jsonrpc.org/specification
 .. _concurrent.futures backport: https://github.com/agronholm/pythonfutures
+.. _Python Language Server: https://github.com/palantir/python-language-server
+.. _Monaco Language Client: https://github.com/TypeFox/monaco-languageclient
