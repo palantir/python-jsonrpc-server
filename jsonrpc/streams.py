@@ -6,6 +6,10 @@ import threading
 log = logging.getLogger(__name__)
 
 
+class _StreamError(Exception):
+    """Raised on stream errors."""
+
+
 class JsonRpcStreamReader(object):
 
     def __init__(self, rfile):
@@ -21,9 +25,10 @@ class JsonRpcStreamReader(object):
             message_consumer (fn): function that is passed each message as it is read off the socket.
         """
         while not self._rfile.closed:
-            request_str = self._read_message()
-
-            if request_str is None:
+            try:
+                request_str = self._read_message()
+            except _StreamError:
+                log.exception("Failed to read message.")
                 break
 
             try:
@@ -36,37 +41,52 @@ class JsonRpcStreamReader(object):
         """Reads the contents of a message.
 
         Returns:
-            body of message if parsable else None
+            body of message
+
+        Raises:
+            _StreamError: If message was not parsable.
         """
-        line = self._rfile.readline()
+        # Read the headers
+        headers = self._read_headers()
 
-        if not line:
-            return None
-
-        content_length = self._content_length(line)
-
-        # Blindly consume all header lines
-        while line and line.strip():
-            line = self._rfile.readline()
-
-        if not line:
-            return None
+        try:
+            content_length = int(headers[b"Content-Length"])
+        except (ValueError, KeyError):
+            raise _StreamError("Invalid or missing Content-Length headers: {}".format(headers))
 
         # Grab the body
-        return self._rfile.read(content_length)
+        body = self._rfile.read(content_length)
+        if not body:
+            raise _StreamError("Got EOF when reading from stream")
 
-    @staticmethod
-    def _content_length(line):
-        """Extract the content length from an input line."""
-        if line.startswith(b'Content-Length: '):
-            _, value = line.split(b'Content-Length: ')
-            value = value.strip()
+        return body
+
+    def _read_headers(self):
+        """Read the headers from a LSP base message.
+
+        Returns:
+            dict: A dict containing the headers and their values.
+
+        Raises:
+            _StreamError: If headers are not parsable.
+        """
+        headers = {}
+        while True:
+            line = self._rfile.readline()
+            if not line:
+                raise _StreamError("Got EOF when reading from stream")
+            if not line.strip():
+                # Finished reading headers break while loop
+                break
+
             try:
-                return int(value)
+                key, value = line.split(b":")
             except ValueError:
-                raise ValueError("Invalid Content-Length header: {}".format(value))
+                raise _StreamError("Invalid header {}: ".format(line))
 
-        return None
+            headers[key.strip()] = value.strip()
+
+        return headers
 
 
 class JsonRpcStreamWriter(object):
