@@ -5,7 +5,7 @@ import traceback
 class JsonRpcException(Exception):
 
     def __init__(self, message=None, code=None, data=None):
-        super(JsonRpcException, self).__init__()
+        super(JsonRpcException, self).__init__(message)
         self.message = message or getattr(self.__class__, 'MESSAGE')
         self.code = code or getattr(self.__class__, 'CODE')
         self.data = data
