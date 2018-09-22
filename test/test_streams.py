@@ -27,13 +27,22 @@ def writer(wfile):
     return JsonRpcStreamWriter(wfile, sort_keys=True)
 
 
-def test_reader(rfile, reader):
-    rfile.write(
+@pytest.mark.parametrize("data", [
+    (
         b'Content-Length: 49\r\n'
         b'Content-Type: application/vscode-jsonrpc; charset=utf8\r\n'
         b'\r\n'
         b'{"id": "hello", "method": "method", "params": {}}'
-    )
+    ),
+    (
+        b'Content-Type: application/vscode-jsonrpc; charset=utf8\r\n'
+        b'Content-Length: 49\r\n'
+        b'\r\n'
+        b'{"id": "hello", "method": "method", "params": {}}'
+    ),
+], ids=["Content-Length first", "Content-Length middle"])
+def test_reader(rfile, reader, data):
+    rfile.write(data)
     rfile.seek(0)
 
     consumer = mock.Mock()
@@ -46,23 +55,24 @@ def test_reader(rfile, reader):
     })
 
 
-def test_reader_bad_message(rfile, reader):
-    rfile.write(b'Hello world')
-    rfile.seek(0)
-
-    # Ensure the listener doesn't throw
-    consumer = mock.Mock()
-    reader.listen(consumer)
-    consumer.assert_not_called()
-
-
-def test_reader_bad_json(rfile, reader):
-    rfile.write(
+@pytest.mark.parametrize("data", [
+    (
+        b'hello'
+    ),
+    (
+        b'Content-Type: application/vscode-jsonrpc; charset=utf8\r\n'
+        b'Content-Length: NOT_AN_INT\r\n'
+        b'\r\n'
+    ),
+    (
         b'Content-Length: 8\r\n'
         b'Content-Type: application/vscode-jsonrpc; charset=utf8\r\n'
         b'\r\n'
         b'{hello}}'
-    )
+    ),
+], ids=["hello", "Invalid Content-Length", "Bad json"])
+def test_reader_bad_message(rfile, reader, data):
+    rfile.write(data)
     rfile.seek(0)
 
     # Ensure the listener doesn't throw
