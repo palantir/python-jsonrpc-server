@@ -3,7 +3,7 @@ import logging
 
 from tornado import web, ioloop, websocket
 
-from jsonrpc import dispatchers, endpoint
+from pyls_jsonrpc import dispatchers, endpoint
 
 log = logging.getLogger(__name__)
 
