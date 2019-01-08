@@ -4,8 +4,8 @@ import time
 import mock
 import pytest
 
-from jsonrpc import exceptions
-from jsonrpc.endpoint import Endpoint
+from pyls_jsonrpc import exceptions
+from pyls_jsonrpc.endpoint import Endpoint
 
 MSG_ID = 'id'
 

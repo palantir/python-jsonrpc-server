@@ -1,2 +1,2 @@
 [run]
-omit = jsonrpc/_version.py
+omit = pyls_jsonrpc/_version.py

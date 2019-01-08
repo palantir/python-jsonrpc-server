@@ -4,7 +4,7 @@ from io import BytesIO
 import mock
 import pytest
 
-from jsonrpc.streams import JsonRpcStreamReader, JsonRpcStreamWriter
+from pyls_jsonrpc.streams import JsonRpcStreamReader, JsonRpcStreamWriter
 
 
 @pytest.fixture()

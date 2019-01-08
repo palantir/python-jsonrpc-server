@@ -5,7 +5,7 @@ import threading
 
 from tornado import ioloop, process, web, websocket
 
-from jsonrpc import streams
+from pyls_jsonrpc import streams
 
 log = logging.getLogger(__name__)
 
