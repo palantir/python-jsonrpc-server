@@ -186,6 +186,10 @@ class Endpoint(object):
             request_future = self._executor_service.submit(handler_result)
             self._client_request_futures[msg_id] = request_future
             request_future.add_done_callback(self._request_callback(msg_id))
+        elif isinstance(handler_result, futures.Future):
+            log.debug("Request handler is already a future %s", handler_result)
+            self._client_request_futures[msg_id] = handler_result
+            handler_result.add_done_callback(self._request_callback(msg_id))
         else:
             log.debug("Got result from synchronous request handler: %s", handler_result)
             self._consumer({

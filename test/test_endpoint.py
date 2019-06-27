@@ -1,5 +1,6 @@
 # Copyright 2018 Palantir Technologies, Inc.
 # pylint: disable=redefined-outer-name
+from concurrent import futures
 import time
 import mock
 import pytest
@@ -185,6 +186,26 @@ def test_consume_request(endpoint, consumer, dispatcher):
         'id': MSG_ID,
         'result': result
     })
+
+
+def test_consume_future_request(endpoint, consumer, dispatcher):
+    future_response = futures.ThreadPoolExecutor().submit(lambda: 1234)
+    handler = mock.Mock(return_value=future_response)
+    dispatcher['methodName'] = handler
+
+    endpoint.consume({
+        'jsonrpc': '2.0',
+        'id': MSG_ID,
+        'method': 'methodName',
+        'params': {'key': 'value'}
+    })
+
+    handler.assert_called_once_with({'key': 'value'})
+    await_assertion(lambda: consumer.assert_called_once_with({
+        'jsonrpc': '2.0',
+        'id': MSG_ID,
+        'result': 1234
+    }))
 
 
 def test_consume_async_request(endpoint, consumer, dispatcher):
