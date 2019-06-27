@@ -41,6 +41,6 @@ setup(
     # for example:
     # $ pip install -e .[test]
     extras_require={
-        'test': ['versioneer', 'pylint', 'pytest', 'mock', 'pytest-cov', 'coverage'],
+        'test': ['versioneer', 'pylint', 'pycodestyle', 'pyflakes', 'pytest', 'mock', 'pytest-cov', 'coverage'],
     },
 )
