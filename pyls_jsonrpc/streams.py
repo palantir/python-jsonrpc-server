@@ -25,6 +25,10 @@ class JsonRpcStreamReader(object):
 
             if request_str is None:
                 break
+                
+            # to check for windows line endings    
+            if request_str == '\r\n':
+                break
 
             try:
                 message_consumer(json.loads(request_str.decode('utf-8')))
