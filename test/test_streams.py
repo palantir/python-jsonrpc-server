@@ -78,15 +78,28 @@ def test_writer(wfile, writer):
         'params': {}
     })
     assert wfile.getvalue() == (
-        b'Content-Length: 49\r\n'
+        b'Content-Length: 44\r\n'
         b'Content-Type: application/vscode-jsonrpc; charset=utf8\r\n'
         b'\r\n'
-        b'{"id": "hello", "method": "method", "params": {}}'
+        b'{"id":"hello","method":"method","params":{}}'
     )
 
 
 def test_writer_bad_message(wfile, writer):
-    # A datetime isn't serializable, ensure the write method doesn't throw
+    # A datetime isn't serializable(or poorly serializable),
+    # ensure the write method doesn't throw
     import datetime
-    writer.write(datetime.datetime.now())
-    assert wfile.getvalue() == b''
+    writer.write(datetime.datetime(
+        year=2019,
+        month=1,
+        day=1,
+        hour=1,
+        minute=1,
+        second=1,
+    ))
+    assert wfile.getvalue() == (
+        b'Content-Length: 10\r\n'
+        b'Content-Type: application/vscode-jsonrpc; charset=utf8\r\n'
+        b'\r\n'
+        b'1546304461'
+    )

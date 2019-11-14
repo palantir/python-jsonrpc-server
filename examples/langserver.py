@@ -1,4 +1,4 @@
-import json
+import ujson as json
 import logging
 
 from tornado import web, ioloop, websocket
