@@ -1,7 +1,8 @@
 # Copyright 2018 Palantir Technologies, Inc.
-import ujson as json
 import logging
 import threading
+
+import ujson as json
 
 log = logging.getLogger(__name__)
 
