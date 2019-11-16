@@ -1,5 +1,5 @@
 # Copyright 2018 Palantir Technologies, Inc.
-import json
+import ujson as json
 import logging
 import threading
 
