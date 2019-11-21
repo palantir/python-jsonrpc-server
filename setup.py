@@ -34,7 +34,7 @@ setup(
     install_requires=[
         'future>=0.14.0',
         'futures; python_version<"3.2"',
-        'ujson<=1.35',
+        'ujson<=1.35;platform_system=="Linux"',
     ],
 
     # List additional groups of dependencies here (e.g. development
