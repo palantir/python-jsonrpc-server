@@ -23,12 +23,12 @@ class JsonRpcStreamReader(object):
         """
         while not self._rfile.closed:
             try:
-              request_str = self._read_message()
+                request_str = self._read_message()
             except ValueError:
-              if self._rfile.closed:
-                return
-              else:
-                log.exception("Failed to read from rfile")
+                if self._rfile.closed:
+                    return
+                else:
+                    log.exception("Failed to read from rfile")
 
             if request_str is None:
                 break
