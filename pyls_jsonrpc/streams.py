@@ -22,7 +22,13 @@ class JsonRpcStreamReader(object):
             message_consumer (fn): function that is passed each message as it is read off the socket.
         """
         while not self._rfile.closed:
-            request_str = self._read_message()
+            try:
+              request_str = self._read_message()
+            except ValueError:
+              if self._rfile.closed:
+                return
+              else:
+                log.exception("Failed to read from rfile")
 
             if request_str is None:
                 break
