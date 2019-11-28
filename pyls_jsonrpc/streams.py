@@ -4,7 +4,7 @@ import threading
 
 try:
     import ujson as json
-except ImportError:
+except Exception:  # pylint: disable=broad-except
     import json
 
 log = logging.getLogger(__name__)
