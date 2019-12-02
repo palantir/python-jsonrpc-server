@@ -1,4 +1,3 @@
-import ujson as json
 import logging
 import subprocess
 import threading
@@ -6,6 +5,11 @@ import threading
 from tornado import ioloop, process, web, websocket
 
 from pyls_jsonrpc import streams
+
+try:
+    import ujson as json
+except Exception:  # pylint: disable=broad-except
+    import json
 
 log = logging.getLogger(__name__)
 

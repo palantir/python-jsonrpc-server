@@ -1,9 +1,13 @@
-import ujson as json
 import logging
 
 from tornado import web, ioloop, websocket
 
 from pyls_jsonrpc import dispatchers, endpoint
+
+try:
+    import ujson as json
+except Exception:  # pylint: disable=broad-except
+    import json
 
 log = logging.getLogger(__name__)
 

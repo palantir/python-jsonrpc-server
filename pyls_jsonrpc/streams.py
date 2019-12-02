@@ -2,7 +2,10 @@
 import logging
 import threading
 
-import ujson as json
+try:
+    import ujson as json
+except Exception:  # pylint: disable=broad-except
+    import json
 
 log = logging.getLogger(__name__)
 
