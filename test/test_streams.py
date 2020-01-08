@@ -1,6 +1,7 @@
 # Copyright 2018 Palantir Technologies, Inc.
 # pylint: disable=redefined-outer-name
 from io import BytesIO
+import os
 import mock
 import pytest
 
@@ -77,12 +78,21 @@ def test_writer(wfile, writer):
         'method': 'method',
         'params': {}
     })
-    assert wfile.getvalue() == (
-        b'Content-Length: 44\r\n'
-        b'Content-Type: application/vscode-jsonrpc; charset=utf8\r\n'
-        b'\r\n'
-        b'{"id":"hello","method":"method","params":{}}'
-    )
+
+    if os.name == 'nt':
+        assert wfile.getvalue() == (
+            b'Content-Length: 49\r\n'
+            b'Content-Type: application/vscode-jsonrpc; charset=utf8\r\n'
+            b'\r\n'
+            b'{"id": "hello", "method": "method", "params": {}}'
+        )
+    else:
+        assert wfile.getvalue() == (
+            b'Content-Length: 44\r\n'
+            b'Content-Type: application/vscode-jsonrpc; charset=utf8\r\n'
+            b'\r\n'
+            b'{"id":"hello","method":"method","params":{}}'
+        )
 
 
 def test_writer_bad_message(wfile, writer):
@@ -97,9 +107,13 @@ def test_writer_bad_message(wfile, writer):
         minute=1,
         second=1,
     ))
-    assert wfile.getvalue() == (
-        b'Content-Length: 10\r\n'
-        b'Content-Type: application/vscode-jsonrpc; charset=utf8\r\n'
-        b'\r\n'
-        b'1546304461'
-    )
+
+    if os.name == 'nt':
+        assert wfile.getvalue() == b''
+    else:
+        assert wfile.getvalue() == (
+            b'Content-Length: 10\r\n'
+            b'Content-Type: application/vscode-jsonrpc; charset=utf8\r\n'
+            b'\r\n'
+            b'1546304461'
+        )
