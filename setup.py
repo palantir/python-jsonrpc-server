@@ -32,7 +32,7 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
-        'future>=0.14.0',
+        'future>=0.14.0; python_version<"3"',
         'futures; python_version<"3.2"',
         'ujson<=1.35; platform_system!="Windows"',
     ],
