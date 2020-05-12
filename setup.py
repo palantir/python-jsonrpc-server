@@ -1,8 +1,23 @@
 #!/usr/bin/env python
 from setuptools import find_packages, setup
+import os
+import sys
 import versioneer
 
 README = open('README.rst', 'r').read()
+
+
+install_requires = [
+    'future>=0.14.0; python_version<"3"',
+    'futures; python_version<"3.2"',
+]
+
+if sys.version_info[0] == 2:
+    if os.name != 'nt':
+        install_requires.append('ujson<=1.35')
+else:
+    install_requires.append('ujson>=2')
+
 
 
 setup(
@@ -31,11 +46,7 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=[
-        'future>=0.14.0; python_version<"3"',
-        'futures; python_version<"3.2"',
-        'ujson<=1.35; platform_system!="Windows"',
-    ],
+    install_requires=install_requires,
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,

@@ -2,6 +2,7 @@
 # pylint: disable=redefined-outer-name
 from io import BytesIO
 import os
+import sys
 import mock
 import pytest
 
@@ -79,7 +80,7 @@ def test_writer(wfile, writer):
         'params': {}
     })
 
-    if os.name == 'nt':
+    if os.name == 'nt' and  sys.version_info[0] == 2:
         assert wfile.getvalue() == (
             b'Content-Length: 49\r\n'
             b'Content-Type: application/vscode-jsonrpc; charset=utf8\r\n'
