@@ -1,14 +1,22 @@
 # Copyright 2018 Palantir Technologies, Inc.
 # pylint: disable=redefined-outer-name
-from concurrent import futures
+# from concurrent import futures
 import time
 import mock
 import pytest
+import asyncio
 
 from pyls_jsonrpc import exceptions
 from pyls_jsonrpc.endpoint import Endpoint
 
 MSG_ID = 'id'
+
+
+async def async_magic():
+    pass
+
+mock.MagicMock.__await__ = lambda x: async_magic().__await__()
+mock.Mock.__await__ = lambda x: async_magic().__await__()
 
 
 @pytest.fixture()
@@ -22,17 +30,20 @@ def consumer():
 
 
 @pytest.fixture()
-def endpoint(dispatcher, consumer):
-    return Endpoint(dispatcher, consumer, id_generator=lambda: MSG_ID)
+def endpoint(dispatcher, consumer, event_loop):
+    return Endpoint(
+        dispatcher, consumer, id_generator=lambda: MSG_ID, loop=event_loop)
 
 
-def test_bad_message(endpoint):
+@pytest.mark.asyncio
+async def test_bad_message(endpoint: Endpoint):
     # Ensure doesn't raise for a bad message
-    endpoint.consume({'key': 'value'})
+    await endpoint.consume({'key': 'value'})
 
 
-def test_notify(endpoint, consumer):
-    endpoint.notify('methodName', {'key': 'value'})
+@pytest.mark.asyncio
+async def test_notify(endpoint, consumer):
+    await endpoint.notify('methodName', {'key': 'value'})
     consumer.assert_called_once_with({
         'jsonrpc': '2.0',
         'method': 'methodName',
@@ -40,16 +51,18 @@ def test_notify(endpoint, consumer):
     })
 
 
-def test_notify_none_params(endpoint, consumer):
-    endpoint.notify('methodName', None)
+@pytest.mark.asyncio
+async def test_notify_none_params(endpoint, consumer):
+    await endpoint.notify('methodName', None)
     consumer.assert_called_once_with({
         'jsonrpc': '2.0',
         'method': 'methodName',
     })
 
 
-def test_request(endpoint, consumer):
-    future = endpoint.request('methodName', {'key': 'value'})
+@pytest.mark.asyncio
+async def test_request(endpoint: Endpoint, consumer):
+    future = await endpoint.request('methodName', {'key': 'value'})
     assert not future.done()
 
     consumer.assert_called_once_with({
@@ -61,17 +74,18 @@ def test_request(endpoint, consumer):
 
     # Send the response back to the endpoint
     result = 1234
-    endpoint.consume({
+    await endpoint.consume({
         'jsonrpc': '2.0',
         'id': MSG_ID,
         'result': result
     })
+    fut_result = await future
+    assert fut_result == result
 
-    assert future.result(timeout=2) == result
 
-
-def test_request_error(endpoint, consumer):
-    future = endpoint.request('methodName', {'key': 'value'})
+@pytest.mark.asyncio
+async def test_request_error(endpoint: Endpoint, consumer):
+    future = await endpoint.request('methodName', {'key': 'value'})
     assert not future.done()
 
     consumer.assert_called_once_with({
@@ -83,21 +97,23 @@ def test_request_error(endpoint, consumer):
 
     # Send an error back from the client
     error = exceptions.JsonRpcInvalidRequest(data=1234)
-    endpoint.consume({
+    await endpoint.consume({
         'jsonrpc': '2.0',
         'id': MSG_ID,
         'error': error.to_dict()
     })
 
-    # Verify the exception raised by the future is the same as the error the client serialized
+    # Verify the exception raised by the future is the same as the error
+    # the client serialized
     with pytest.raises(exceptions.JsonRpcException) as exc_info:
-        assert future.result(timeout=2)
+        await future  # .result(timeout=2)
     assert exc_info.type == exceptions.JsonRpcInvalidRequest
     assert exc_info.value == error
 
 
-def test_request_cancel(endpoint, consumer):
-    future = endpoint.request('methodName', {'key': 'value'})
+@pytest.mark.asyncio
+async def test_request_cancel(endpoint: Endpoint, consumer, event_loop):
+    future = await endpoint.request('methodName', {'key': 'value'})
     assert not future.done()
 
     consumer.assert_called_once_with({
@@ -109,34 +125,35 @@ def test_request_cancel(endpoint, consumer):
 
     # Cancel the request
     future.cancel()
+    await asyncio.sleep(0.5)
     consumer.assert_any_call({
         'jsonrpc': '2.0',
         'method': '$/cancelRequest',
         'params': {'id': MSG_ID}
     })
 
-    with pytest.raises(exceptions.JsonRpcException) as exc_info:
-        assert future.result(timeout=2)
-    assert exc_info.type == exceptions.JsonRpcRequestCancelled
 
-
-def test_consume_notification(endpoint, dispatcher):
+@pytest.mark.asyncio
+async def test_consume_notification(endpoint: Endpoint, dispatcher):
     handler = mock.Mock()
+    # handler = asyncio.Future()
     dispatcher['methodName'] = handler
 
-    endpoint.consume({
+    await endpoint.consume({
         'jsonrpc': '2.0',
         'method': 'methodName',
         'params': {'key': 'value'}
     })
+    # await handler
     handler.assert_called_once_with({'key': 'value'})
 
 
-def test_consume_notification_error(endpoint, dispatcher):
+@pytest.mark.asyncio
+async def test_consume_notification_error(endpoint, dispatcher):
     handler = mock.Mock(side_effect=ValueError)
     dispatcher['methodName'] = handler
     # Verify the consume doesn't throw
-    endpoint.consume({
+    await endpoint.consume({
         'jsonrpc': '2.0',
         'method': 'methodName',
         'params': {'key': 'value'}
@@ -144,23 +161,26 @@ def test_consume_notification_error(endpoint, dispatcher):
     handler.assert_called_once_with({'key': 'value'})
 
 
-def test_consume_notification_method_not_found(endpoint):
+@pytest.mark.asyncio
+async def test_consume_notification_method_not_found(endpoint):
     # Verify consume doesn't throw for method not found
-    endpoint.consume({
+    await endpoint.consume({
         'jsonrpc': '2.0',
         'method': 'methodName',
         'params': {'key': 'value'}
     })
 
 
-def test_consume_async_notification_error(endpoint, dispatcher):
-    def _async_handler():
+@pytest.mark.asyncio
+async def test_consume_async_notification_error(endpoint, dispatcher):
+    async def _async_handler():
         raise ValueError()
-    handler = mock.Mock(return_value=_async_handler)
+
+    handler = mock.Mock(wraps=_async_handler)
     dispatcher['methodName'] = handler
 
     # Verify the consume doesn't throw
-    endpoint.consume({
+    await endpoint.consume({
         'jsonrpc': '2.0',
         'method': 'methodName',
         'params': {'key': 'value'}
@@ -168,12 +188,13 @@ def test_consume_async_notification_error(endpoint, dispatcher):
     handler.assert_called_once_with({'key': 'value'})
 
 
-def test_consume_request(endpoint, consumer, dispatcher):
+@pytest.mark.asyncio
+async def test_consume_request(endpoint, consumer, dispatcher):
     result = 1234
     handler = mock.Mock(return_value=result)
     dispatcher['methodName'] = handler
 
-    endpoint.consume({
+    await endpoint.consume({
         'jsonrpc': '2.0',
         'id': MSG_ID,
         'method': 'methodName',
@@ -188,33 +209,18 @@ def test_consume_request(endpoint, consumer, dispatcher):
     })
 
 
-def test_consume_future_request(endpoint, consumer, dispatcher):
-    future_response = futures.ThreadPoolExecutor().submit(lambda: 1234)
-    handler = mock.Mock(return_value=future_response)
-    dispatcher['methodName'] = handler
-
-    endpoint.consume({
-        'jsonrpc': '2.0',
-        'id': MSG_ID,
-        'method': 'methodName',
-        'params': {'key': 'value'}
-    })
-
-    handler.assert_called_once_with({'key': 'value'})
-    await_assertion(lambda: consumer.assert_called_once_with({
-        'jsonrpc': '2.0',
-        'id': MSG_ID,
-        'result': 1234
-    }))
-
-
-def test_consume_async_request(endpoint, consumer, dispatcher):
-    def _async_handler():
+@pytest.mark.asyncio
+async def test_consume_future_request(
+        endpoint: Endpoint, consumer, dispatcher, event_loop):
+    # future_response = futures.ThreadPoolExecutor().submit(lambda: 1234)
+    async def future_wrap(*args, **kwargs):
         return 1234
-    handler = mock.Mock(return_value=_async_handler)
+
+    task = asyncio.ensure_future(future_wrap())
+    handler = mock.Mock(return_value=task)
     dispatcher['methodName'] = handler
 
-    endpoint.consume({
+    await endpoint.consume({
         'jsonrpc': '2.0',
         'id': MSG_ID,
         'method': 'methodName',
@@ -222,25 +228,53 @@ def test_consume_async_request(endpoint, consumer, dispatcher):
     })
 
     handler.assert_called_once_with({'key': 'value'})
-    await_assertion(lambda: consumer.assert_called_once_with({
+    await asyncio.sleep(0.5)
+    consumer.assert_called_once_with({
         'jsonrpc': '2.0',
         'id': MSG_ID,
         'result': 1234
-    }))
+    })
 
 
+@pytest.mark.asyncio
+async def test_consume_async_request(endpoint, consumer, dispatcher):
+    async def _async_handler(*args, **kwargs):
+        return 1234
+
+    handler = mock.Mock(wraps=_async_handler)
+    dispatcher['methodName'] = handler
+
+    await endpoint.consume({
+        'jsonrpc': '2.0',
+        'id': MSG_ID,
+        'method': 'methodName',
+        'params': {'key': 'value'}
+    })
+
+    handler.assert_called_once_with({'key': 'value'})
+    await asyncio.sleep(0.5)
+    consumer.assert_called_once_with({
+        'jsonrpc': '2.0',
+        'id': MSG_ID,
+        'result': 1234
+    })
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize('exc_type, error', [
     (ValueError, exceptions.JsonRpcInternalError(message='ValueError')),
     (KeyError, exceptions.JsonRpcInternalError(message='KeyError')),
     (exceptions.JsonRpcMethodNotFound, exceptions.JsonRpcMethodNotFound()),
 ])
-def test_consume_async_request_error(exc_type, error, endpoint, consumer, dispatcher):
-    def _async_handler():
+async def test_consume_async_request_error(exc_type, error, endpoint: Endpoint,
+                                           consumer, dispatcher):
+    async def _async_handler(*args, **kwargs):
         raise exc_type()
-    handler = mock.Mock(return_value=_async_handler)
+
+    handler = mock.Mock(wraps=_async_handler)
     dispatcher['methodName'] = handler
 
-    endpoint.consume({
+    await endpoint.consume({
         'jsonrpc': '2.0',
         'id': MSG_ID,
         'method': 'methodName',
@@ -248,11 +282,13 @@ def test_consume_async_request_error(exc_type, error, endpoint, consumer, dispat
     })
 
     handler.assert_called_once_with({'key': 'value'})
-    await_assertion(lambda: assert_consumer_error(consumer, error))
+    await asyncio.sleep(0.5)
+    assert_consumer_error(consumer, error)
 
 
-def test_consume_request_method_not_found(endpoint, consumer):
-    endpoint.consume({
+@pytest.mark.asyncio
+async def test_consume_request_method_not_found(endpoint, consumer):
+    await endpoint.consume({
         'jsonrpc': '2.0',
         'id': MSG_ID,
         'method': 'methodName',
@@ -261,16 +297,17 @@ def test_consume_request_method_not_found(endpoint, consumer):
     assert_consumer_error(consumer, exceptions.JsonRpcMethodNotFound.of('methodName'))
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize('exc_type, error', [
     (ValueError, exceptions.JsonRpcInternalError(message='ValueError')),
     (KeyError, exceptions.JsonRpcInternalError(message='KeyError')),
     (exceptions.JsonRpcMethodNotFound, exceptions.JsonRpcMethodNotFound()),
 ])
-def test_consume_request_error(exc_type, error, endpoint, consumer, dispatcher):
+async def test_consume_request_error(exc_type, error, endpoint, consumer, dispatcher):
     handler = mock.Mock(side_effect=exc_type)
     dispatcher['methodName'] = handler
 
-    endpoint.consume({
+    await endpoint.consume({
         'jsonrpc': '2.0',
         'id': MSG_ID,
         'method': 'methodName',
@@ -278,16 +315,18 @@ def test_consume_request_error(exc_type, error, endpoint, consumer, dispatcher):
     })
 
     handler.assert_called_once_with({'key': 'value'})
-    await_assertion(lambda: assert_consumer_error(consumer, error))
+    assert_consumer_error(consumer, error)
 
 
-def test_consume_request_cancel(endpoint, dispatcher):
-    def async_handler():
-        time.sleep(3)
-    handler = mock.Mock(return_value=async_handler)
+@pytest.mark.asyncio
+async def test_consume_request_cancel(endpoint, dispatcher):
+    async def async_handler():
+        await asyncio.sleep(3)
+
+    handler = mock.Mock(wraps=async_handler)
     dispatcher['methodName'] = handler
 
-    endpoint.consume({
+    await endpoint.consume({
         'jsonrpc': '2.0',
         'id': MSG_ID,
         'method': 'methodName',
@@ -295,7 +334,7 @@ def test_consume_request_cancel(endpoint, dispatcher):
     })
     handler.assert_called_once_with({'key': 'value'})
 
-    endpoint.consume({
+    await endpoint.consume({
         'jsonrpc': '2.0',
         'method': '$/cancelRequest',
         'params': {'id': MSG_ID}
@@ -309,9 +348,10 @@ def test_consume_request_cancel(endpoint, dispatcher):
     # })
 
 
-def test_consume_request_cancel_unknown(endpoint):
+@pytest.mark.asyncio
+async def test_consume_request_cancel_unknown(endpoint):
     # Verify consume doesn't throw
-    endpoint.consume({
+    await endpoint.consume({
         'jsonrpc': '2.0',
         'method': '$/cancelRequest',
         'params': {'id': 'unknown identifier'}

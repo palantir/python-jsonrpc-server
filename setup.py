@@ -32,8 +32,6 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
-        'future>=0.14.0; python_version<"3"',
-        'futures; python_version<"3.2"',
         'ujson<=1.35; platform_system!="Windows"',
     ],
 
@@ -42,6 +40,7 @@ setup(
     # for example:
     # $ pip install -e .[test]
     extras_require={
-        'test': ['versioneer', 'pylint', 'pycodestyle', 'pyflakes', 'pytest', 'mock', 'pytest-cov', 'coverage'],
+        'test': ['versioneer', 'pylint', 'pycodestyle', 'pyflakes', 'pytest',
+                 'mock', 'pytest-cov', 'coverage', 'pytest-asyncio'],
     },
 )
