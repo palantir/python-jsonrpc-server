@@ -16,7 +16,7 @@ class JsonRpcStreamReader(object):
     def __init__(self, rfile, loop=None):
         self._rfile = rfile
         self.close = False
-        self.loop = asyncio.get_running_loop() if loop is not None else loop
+        self.loop = asyncio.get_event_loop() if loop is not None else loop
 
     def close(self) -> None:
         # self.close = True
@@ -95,7 +95,7 @@ class JsonRpcStreamWriter(object):
         self._wfile_lock = asyncio.Lock()
         # self._wfile_lock = threading.Lock()
         self._json_dumps_args = json_dumps_args
-        self.loop = asyncio.get_running_loop() if loop is None else loop
+        self.loop = asyncio.get_event_loop() if loop is None else loop
 
     async def close(self):
         async with self._wfile_lock:

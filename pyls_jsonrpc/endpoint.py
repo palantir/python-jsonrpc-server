@@ -41,7 +41,7 @@ class Endpoint(object):
         self._id_generator = id_generator
 
         self.loop = (
-            asyncio.get_running_loop() if loop is None else loop)  # type: asyncio.BaseEventLoop
+            asyncio.get_event_loop() if loop is None else loop)  # type: asyncio.BaseEventLoop
         self._client_request_futures = {}   # type: Dict[str, Awaitable]
         self._server_request_futures = {}   # type: Dict[str, Awaitable]
 
