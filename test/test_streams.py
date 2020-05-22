@@ -193,7 +193,6 @@ async def test_writer(wfile, writer):
 async def test_writer_bad_message(wfile, writer):
     # A datetime isn't serializable(or poorly serializable),
     # ensure the write method doesn't throw
-    import datetime
     await writer.write(datetime.datetime(
         year=2019,
         month=1,

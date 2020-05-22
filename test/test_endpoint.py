@@ -2,9 +2,9 @@
 # pylint: disable=redefined-outer-name
 # from concurrent import futures
 import asyncio
+import time
 import mock
 import pytest
-import time
 
 from pyls_jsonrpc import exceptions
 from pyls_jsonrpc.endpoint import Endpoint

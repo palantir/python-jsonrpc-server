@@ -6,7 +6,7 @@ _RE_FIRST_CAP = re.compile('(.)([A-Z][a-z]+)')
 _RE_ALL_CAP = re.compile('([a-z0-9])([A-Z])')
 
 
-class MethodDispatcher(object):
+class MethodDispatcher:
     """JSON RPC dispatcher that calls methods on itself.
 
     Method names are computed by converting camel case to snake case, slashes
