@@ -1,6 +1,7 @@
 # Copyright 2018 Palantir Technologies, Inc.
 import asyncio
 import logging
+import functools
 from typing import Coroutine, Dict, Union, Any
 
 try:
@@ -13,9 +14,11 @@ log = logging.getLogger(__name__)
 
 class JsonRpcStreamReader(object):
 
-    def __init__(self, rfile: asyncio.StreamReader):
+    def __init__(self, rfile: asyncio.StreamReader,
+                 loop: asyncio.AbstractEventLoop = None):
         self._rfile = rfile
         self.close = False
+        self.loop = asyncio.get_running_loop() if loop is not None else loop
 
     def close(self) -> None:
         # self.close = True
@@ -42,8 +45,8 @@ class JsonRpcStreamReader(object):
                 break
 
             try:
-                asyncio.ensure_future(
-                    message_consumer(json.loads(request_str.decode('utf-8'))))
+                body = json.loads(request_str.decode('utf-8'))
+                asyncio.ensure_future(message_consumer(body), loop=self.loop)
             except ValueError:
                 log.exception("Failed to parse JSON message %s", request_str)
                 continue
@@ -89,11 +92,14 @@ class JsonRpcStreamReader(object):
 
 class JsonRpcStreamWriter(object):
 
-    def __init__(self, wfile: asyncio.StreamWriter, **json_dumps_args):
+    def __init__(self, wfile: asyncio.StreamWriter,
+                 loop: asyncio.AbstractEventLoop = None,
+                 **json_dumps_args):
         self._wfile = wfile
         self._wfile_lock = asyncio.Lock()
         # self._wfile_lock = threading.Lock()
         self._json_dumps_args = json_dumps_args
+        self.loop = asyncio.get_running_loop() if loop is None else loop
 
     async def close(self) -> None:
         async with self._wfile_lock:
@@ -101,13 +107,13 @@ class JsonRpcStreamWriter(object):
             await self._wfile.wait_closed()
 
     async def write(self, message: Dict) -> None:
-        loop = asyncio.get_event_loop()
         async with self._wfile_lock:
             if self._wfile.is_closing():
                 return
             try:
-                body = await loop.run_in_executor(
-                    None, json.dumps(message, **self._json_dumps_args))
+                body = await self.loop.run_in_executor(
+                    None, functools.partial(
+                        json.dumps, message, **self._json_dumps_args))
 
                 # Ensure we get the byte length, not the character length
                 content_length = (len(body) if isinstance(body, bytes) else
@@ -121,7 +127,7 @@ class JsonRpcStreamWriter(object):
                 )
 
                 self._wfile.write(response.encode('utf-8'))
-                self._wfile.drain()
+                await self._wfile.drain()
             except Exception:  # pylint: disable=broad-except
                 log.exception(
                     "Failed to write message to output file %s", message)
