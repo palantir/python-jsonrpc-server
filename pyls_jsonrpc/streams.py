@@ -2,7 +2,6 @@
 import asyncio
 import logging
 import functools
-from typing import Coroutine, Dict, Union, Any
 
 try:
     import ujson as json
@@ -14,8 +13,7 @@ log = logging.getLogger(__name__)
 
 class JsonRpcStreamReader(object):
 
-    def __init__(self, rfile: asyncio.StreamReader,
-                 loop: asyncio.AbstractEventLoop = None):
+    def __init__(self, rfile, loop=None):
         self._rfile = rfile
         self.close = False
         self.loop = asyncio.get_running_loop() if loop is not None else loop
@@ -25,7 +23,7 @@ class JsonRpcStreamReader(object):
         self._rfile.feed_eof()
         # self._rfile.close()
 
-    async def listen(self, message_consumer: Coroutine) -> Any:
+    async def listen(self, message_consumer):
         """Blocking call to listen for messages on the rfile.
 
         Args:
@@ -51,7 +49,7 @@ class JsonRpcStreamReader(object):
                 log.exception("Failed to parse JSON message %s", request_str)
                 continue
 
-    async def _read_message(self) -> Union[str, None]:
+    async def _read_message(self):
         """Reads the contents of a message.
 
         Returns:
@@ -76,7 +74,7 @@ class JsonRpcStreamReader(object):
         return content
 
     @staticmethod
-    def _content_length(line: str) -> Union[int, None]:
+    def _content_length(line):
         """Extract the content length from an input line."""
         if line.startswith(b'Content-Length: '):
             _, value = line.split(b'Content-Length: ')
@@ -92,21 +90,19 @@ class JsonRpcStreamReader(object):
 
 class JsonRpcStreamWriter(object):
 
-    def __init__(self, wfile: asyncio.StreamWriter,
-                 loop: asyncio.AbstractEventLoop = None,
-                 **json_dumps_args):
+    def __init__(self, wfile, loop=None, **json_dumps_args):
         self._wfile = wfile
         self._wfile_lock = asyncio.Lock()
         # self._wfile_lock = threading.Lock()
         self._json_dumps_args = json_dumps_args
         self.loop = asyncio.get_running_loop() if loop is None else loop
 
-    async def close(self) -> None:
+    async def close(self):
         async with self._wfile_lock:
             self._wfile.close()
             await self._wfile.wait_closed()
 
-    async def write(self, message: Dict) -> None:
+    async def write(self, message):
         async with self._wfile_lock:
             if self._wfile.is_closing():
                 return

@@ -4,8 +4,6 @@ import logging
 import uuid
 import sys
 
-from typing import Dict, Coroutine, Union, Callable, Awaitable
-
 from .exceptions import (
     JsonRpcException, JsonRpcRequestCancelled,
     JsonRpcInternalError, JsonRpcMethodNotFound)
@@ -18,11 +16,11 @@ CANCEL_METHOD = '$/cancelRequest'
 class Endpoint(object):
 
     def __init__(self,
-                 dispatcher: Dict[str, Union[Coroutine, Dict, None]],
-                 consumer: Coroutine,
-                 id_generator: Callable[[], str] = lambda: str(uuid.uuid4()),
-                 max_workers: int = 5,
-                 loop: asyncio.BaseEventLoop = None):
+                 dispatcher,
+                 consumer,
+                 id_generator=lambda: str(uuid.uuid4()),
+                 max_workers=5,
+                 loop=None):
         """A JSON RPC endpoint for managing messages sent to/from the client.
 
         Args:
@@ -47,11 +45,11 @@ class Endpoint(object):
         self._client_request_futures = {}  # type: Dict[str, Awaitable]
         self._server_request_futures = {}  # type: Dict[str, Awaitable]
 
-    def shutdown(self) -> None:
+    def shutdown(self):
         # self._executor_service.shutdown()
         self.loop.close()
 
-    async def notify(self, method: str, params: Dict = None) -> None:
+    async def notify(self, method, params=None):
         """Send a JSON RPC notification to the client.
 
          Args:
@@ -68,7 +66,7 @@ class Endpoint(object):
 
         await self._consumer(message)
 
-    async def request(self, method: str, params: Dict = None) -> Awaitable:
+    async def request(self, method, params=None):
         """Send a JSON RPC request to the client.
 
         Args:
@@ -97,19 +95,16 @@ class Endpoint(object):
 
         return request_future
 
-    def _cancel_callback(self, request_id: int) -> Coroutine:
+    def _cancel_callback(self, request_id):
         """Construct a cancellation callback for the given request ID."""
-        def callback(future: asyncio.Future):
+        def callback(future):
             if future.cancelled():
                 asyncio.ensure_future(
                     self.notify(CANCEL_METHOD, {'id': request_id}),
                     loop=self.loop)
-                # self.loop.run_until_complete(
-                #     self.notify(CANCEL_METHOD, {'id': request_id}))
-                # future.set_exception(JsonRpcRequestCancelled())
         return callback
 
-    async def consume(self, message: Dict) -> None:
+    async def consume(self, message):
         """Consume a JSON RPC message from the client.
 
         Args:
@@ -147,7 +142,7 @@ class Endpoint(object):
                     'error': JsonRpcInternalError.of(sys.exc_info()).to_dict()
                 })
 
-    async def _handle_notification(self, method: str, params: Dict) -> None:
+    async def _handle_notification(self, method, params):
         """Handle a notification from the client."""
         if method == CANCEL_METHOD:
             await self._handle_cancel_notification(params['id'])
@@ -174,9 +169,9 @@ class Endpoint(object):
                 self._notification_callback(method, params))
 
     @staticmethod
-    def _notification_callback(method: str, params: Dict) -> Coroutine:
+    def _notification_callback(method, params):
         """Construct a notification callback for the given request ID."""
-        def callback(future: Awaitable) -> None:
+        def callback(future):
             try:
                 future.result()
                 log.debug("Successfully handled async notification %s %s",
@@ -186,7 +181,7 @@ class Endpoint(object):
                               method, params)
         return callback
 
-    async def _handle_cancel_notification(self, msg_id: int) -> None:
+    async def _handle_cancel_notification(self, msg_id):
         """Handle a cancel notification from the client."""
         request_future = self._client_request_futures.pop(msg_id, None)
 
@@ -199,8 +194,7 @@ class Endpoint(object):
         if request_future.cancel():
             log.debug("Cancelled request with id %s", msg_id)
 
-    async def _handle_request(self, msg_id: int, method: str,
-                              params: Dict) -> None:
+    async def _handle_request(self, msg_id, method, params):
         """Handle a request from the client."""
         try:
             handler = self._dispatcher[method]
@@ -228,9 +222,9 @@ class Endpoint(object):
                 'result': handler_result
             })
 
-    def _request_callback(self, request_id: int) -> Callable:
+    def _request_callback(self, request_id):
         """Construct a request callback for the given request ID."""
-        def callback(future: Awaitable) -> None:
+        def callback(future):
             # Remove the future from the client requests map
             self._client_request_futures.pop(request_id, None)
 
@@ -256,9 +250,7 @@ class Endpoint(object):
 
         return callback
 
-    async def _handle_response(self, msg_id: int,
-                               result: Union[Dict, None] = None,
-                               error: Union[Dict, None] = None) -> None:
+    async def _handle_response(self, msg_id, result=None, error=None):
         """Handle a response from the client."""
         request_future = self._server_request_futures.pop(msg_id, None)  # type: asyncio.Future
 
