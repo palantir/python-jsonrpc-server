@@ -4,6 +4,8 @@ import logging
 import uuid
 import sys
 
+from typing import Dict, Awaitable
+
 from .exceptions import (
     JsonRpcException, JsonRpcRequestCancelled,
     JsonRpcInternalError, JsonRpcMethodNotFound)
