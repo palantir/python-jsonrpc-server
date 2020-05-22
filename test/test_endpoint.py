@@ -1,10 +1,10 @@
 # Copyright 2018 Palantir Technologies, Inc.
 # pylint: disable=redefined-outer-name
 # from concurrent import futures
-import time
+import asyncio
 import mock
 import pytest
-import asyncio
+import time
 
 from pyls_jsonrpc import exceptions
 from pyls_jsonrpc.endpoint import Endpoint
@@ -112,7 +112,7 @@ async def test_request_error(endpoint: Endpoint, consumer):
 
 
 @pytest.mark.asyncio
-async def test_request_cancel(endpoint: Endpoint, consumer, event_loop):
+async def test_request_cancel(endpoint: Endpoint, consumer):
     future = await endpoint.request('methodName', {'key': 'value'})
     assert not future.done()
 
@@ -211,9 +211,9 @@ async def test_consume_request(endpoint, consumer, dispatcher):
 
 @pytest.mark.asyncio
 async def test_consume_future_request(
-        endpoint: Endpoint, consumer, dispatcher, event_loop):
+        endpoint: Endpoint, consumer, dispatcher):
     # future_response = futures.ThreadPoolExecutor().submit(lambda: 1234)
-    async def future_wrap(*args, **kwargs):
+    async def future_wrap(*args, **kwargs):  # pylint: disable=unused-argument
         return 1234
 
     task = asyncio.ensure_future(future_wrap())
@@ -238,7 +238,7 @@ async def test_consume_future_request(
 
 @pytest.mark.asyncio
 async def test_consume_async_request(endpoint, consumer, dispatcher):
-    async def _async_handler(*args, **kwargs):
+    async def _async_handler(*args, **kwargs):  # pylint: disable=unused-argument
         return 1234
 
     handler = mock.Mock(wraps=_async_handler)

@@ -13,13 +13,12 @@ JSONRPC_VERSION = '2.0'
 CANCEL_METHOD = '$/cancelRequest'
 
 
-class Endpoint(object):
+class Endpoint:
 
     def __init__(self,
                  dispatcher,
                  consumer,
                  id_generator=lambda: str(uuid.uuid4()),
-                 max_workers=5,
                  loop=None):
         """A JSON RPC endpoint for managing messages sent to/from the client.
 
@@ -111,7 +110,7 @@ class Endpoint(object):
             message (dict): The JSON RPC message sent by the client
         """
         if 'jsonrpc' not in message or message['jsonrpc'] != JSONRPC_VERSION:
-            log.warn("Unknown message type %s", message)
+            log.warning("Unknown message type %s", message)
             return
 
         if 'id' not in message:
@@ -151,7 +150,7 @@ class Endpoint(object):
         try:
             handler = self._dispatcher[method]
         except KeyError:
-            log.warn("Ignoring notification for unknown method %s", method)
+            log.warning("Ignoring notification for unknown method %s", method)
             return
 
         try:
@@ -186,8 +185,8 @@ class Endpoint(object):
         request_future = self._client_request_futures.pop(msg_id, None)
 
         if not request_future:
-            log.warn("Received cancel notification for unknown message id %s",
-                     msg_id)
+            log.warning("Received cancel notification for unknown message id %s",
+                        msg_id)
             return
 
         # Will only work if the request hasn't started executing
@@ -255,7 +254,7 @@ class Endpoint(object):
         request_future = self._server_request_futures.pop(msg_id, None)  # type: asyncio.Future
 
         if not request_future:
-            log.warn("Received response to unknown message id %s", msg_id)
+            log.warning("Received response to unknown message id %s", msg_id)
             return
 
         if error is not None:

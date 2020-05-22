@@ -1,10 +1,11 @@
 # Copyright 2018 Palantir Technologies, Inc.
 # pylint: disable=redefined-outer-name
+import asyncio
+import datetime
 from io import BytesIO
 import os
 import mock
 import pytest
-import asyncio
 
 from pyls_jsonrpc.streams import JsonRpcStreamReader, JsonRpcStreamWriter
 
@@ -16,8 +17,7 @@ mock.MagicMock.__await__ = lambda x: async_magic().__await__()
 mock.Mock.__await__ = lambda x: async_magic().__await__()
 
 
-async def stdio(limit=asyncio.streams._DEFAULT_LIMIT,
-                loop=None):
+async def stdio(loop=None):
     if loop is None:
         loop = asyncio.get_event_loop()
 

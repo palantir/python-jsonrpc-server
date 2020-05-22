@@ -11,11 +11,10 @@ except Exception:  # pylint: disable=broad-except
 log = logging.getLogger(__name__)
 
 
-class JsonRpcStreamReader(object):
+class JsonRpcStreamReader:
 
     def __init__(self, rfile, loop=None):
         self._rfile = rfile
-        self.close = False
         self.loop = asyncio.get_event_loop() if loop is not None else loop
 
     def close(self) -> None:
@@ -36,8 +35,8 @@ class JsonRpcStreamReader(object):
             except ValueError:
                 if self._rfile.at_eof():
                     return
-                else:
-                    log.exception("Failed to read from rfile")
+
+                log.exception("Failed to read from rfile")
 
             if request_str is None:
                 break
@@ -88,12 +87,11 @@ class JsonRpcStreamReader(object):
         return None
 
 
-class JsonRpcStreamWriter(object):
+class JsonRpcStreamWriter:
 
     def __init__(self, wfile, loop=None, **json_dumps_args):
         self._wfile = wfile
         self._wfile_lock = asyncio.Lock()
-        # self._wfile_lock = threading.Lock()
         self._json_dumps_args = json_dumps_args
         self.loop = asyncio.get_event_loop() if loop is None else loop
 
