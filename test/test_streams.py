@@ -99,7 +99,11 @@ def test_writer(wfile, writer):
 class JsonDatetime(datetime.datetime):
     """Monkey path json datetime."""
     def __json__(self):
-        return '{0}'.format(int(self.timestamp()))
+        if sys.version_info.major == 3:
+            dif = int(self.timestamp())
+        else:
+            dif = int((self - datetime.datetime(1970, 1, 1)).total_seconds())
+        return '{0}'.format(dif)
 
 
 def test_writer_bad_message(wfile, writer):
