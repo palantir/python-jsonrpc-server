@@ -3,9 +3,9 @@
 from io import BytesIO
 import datetime
 import os
+import sys
 import mock
 import pytest
-import sys
 
 from pyls_jsonrpc.streams import JsonRpcStreamReader, JsonRpcStreamWriter
 
