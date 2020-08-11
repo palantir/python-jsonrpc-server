@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 from setuptools import find_packages, setup
-import os
 import sys
 import versioneer
 
@@ -13,8 +12,7 @@ install_requires = [
 ]
 
 if sys.version_info[0] == 2:
-    if os.name != 'nt':
-        install_requires.append('ujson<=2.0.3')
+    install_requires.append('ujson<=2.0.3; platform_system!="Windows"')
 else:
     install_requires.append('ujson>3.0.0')
 
