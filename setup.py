@@ -14,7 +14,7 @@ install_requires = [
 if sys.version_info[0] == 2:
     install_requires.append('ujson<=2.0.3; platform_system!="Windows"')
 else:
-    install_requires.append('ujson>3.0.0')
+    install_requires.append('ujson>=3.0.0')
 
 setup(
     name='python-jsonrpc-server',
