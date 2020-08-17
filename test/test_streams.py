@@ -97,7 +97,8 @@ def test_writer(wfile, writer):
 
 def test_writer_bad_message(wfile, writer):
     # A datetime isn't serializable(or poorly serializable),
-    # ensure the write method doesn't throw
+    # ensure the write method doesn't throw, but the result could be empty
+    # or the correct datetime
     import datetime
     writer.write(datetime.datetime(
         year=2019,
@@ -108,12 +109,10 @@ def test_writer_bad_message(wfile, writer):
         second=1,
     ))
 
-    if os.name == 'nt':
-        assert wfile.getvalue() == b''
-    else:
-        assert wfile.getvalue() == (
-            b'Content-Length: 10\r\n'
-            b'Content-Type: application/vscode-jsonrpc; charset=utf8\r\n'
-            b'\r\n'
-            b'1546304461'
-        )
+    assert wfile.getvalue() in [
+        b'',
+        b'Content-Length: 10\r\n'
+        b'Content-Type: application/vscode-jsonrpc; charset=utf8\r\n'
+        b'\r\n'
+        b'1546304461'
+    ]

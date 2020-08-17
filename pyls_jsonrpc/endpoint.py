@@ -236,6 +236,7 @@ class Endpoint(object):
         if error is not None:
             log.debug("Received error response to message %s: %s", msg_id, error)
             request_future.set_exception(JsonRpcException.from_dict(error))
+            return
 
         log.debug("Received result for message %s: %s", msg_id, result)
         request_future.set_result(result)
