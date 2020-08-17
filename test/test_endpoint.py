@@ -115,9 +115,9 @@ def test_request_cancel(endpoint, consumer):
         'params': {'id': MSG_ID}
     })
 
-    with pytest.raises(exceptions.JsonRpcException) as exc_info:
+    with pytest.raises((exceptions.JsonRpcException, futures.CancelledError)) as exc_info:
         assert future.result(timeout=2)
-    assert exc_info.type == exceptions.JsonRpcRequestCancelled
+    assert exc_info.type in (exceptions.JsonRpcRequestCancelled, futures.CancelledError)
 
 
 def test_consume_notification(endpoint, dispatcher):
