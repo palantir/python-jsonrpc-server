@@ -3,7 +3,6 @@
 import asyncio
 import datetime
 from io import BytesIO
-import datetime
 import os
 import sys
 import mock
