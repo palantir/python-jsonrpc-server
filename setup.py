@@ -6,10 +6,7 @@ import versioneer
 README = open('README.rst', 'r').read()
 
 
-install_requires = [
-    'future>=0.14.0; python_version<"3"',
-    'futures; python_version<"3.2"',
-]
+install_requires = []
 
 if sys.version_info[0] == 2:
     install_requires.append('ujson<=2.0.3; platform_system!="Windows"')
@@ -49,6 +46,7 @@ setup(
     # for example:
     # $ pip install -e .[test]
     extras_require={
-        'test': ['versioneer', 'pylint', 'pycodestyle', 'pyflakes', 'pytest', 'mock', 'pytest-cov', 'coverage'],
+        'test': ['versioneer', 'pylint', 'pycodestyle', 'pyflakes', 'pytest',
+                 'mock', 'pytest-cov', 'coverage', 'pytest-asyncio'],
     },
 )
