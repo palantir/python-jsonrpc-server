@@ -1,8 +1,8 @@
 # Copyright 2018 Palantir Technologies, Inc.
 # pylint: disable=redefined-outer-name
+from io import BytesIO
 import asyncio
 import datetime
-from io import BytesIO
 import os
 import sys
 import mock
