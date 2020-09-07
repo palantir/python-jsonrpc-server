@@ -1,7 +1,9 @@
 # Copyright 2018 Palantir Technologies, Inc.
 # pylint: disable=redefined-outer-name
 from io import BytesIO
+import datetime
 import os
+import sys
 import mock
 import pytest
 
@@ -95,11 +97,21 @@ def test_writer(wfile, writer):
         )
 
 
+class JsonDatetime(datetime.datetime):
+    """Monkey path json datetime."""
+    def __json__(self):
+        if sys.version_info.major == 3:
+            dif = int(self.timestamp())
+        else:
+            dif = int((self - datetime.datetime(1970, 1, 1)).total_seconds())
+        return '{0}'.format(dif)
+
+
 def test_writer_bad_message(wfile, writer):
     # A datetime isn't serializable(or poorly serializable),
     # ensure the write method doesn't throw, but the result could be empty
     # or the correct datetime
-    import datetime
+    datetime.datetime = JsonDatetime
     writer.write(datetime.datetime(
         year=2019,
         month=1,
