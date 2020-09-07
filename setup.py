@@ -1,9 +1,17 @@
 #!/usr/bin/env python
 from setuptools import find_packages, setup
+import sys
 import versioneer
 
 README = open('README.rst', 'r').read()
 
+
+install_requires = []
+
+if sys.version_info[0] == 2:
+    install_requires.append('ujson<=2.0.3; platform_system!="Windows"')
+else:
+    install_requires.append('ujson>=3.0.0')
 
 setup(
     name='python-jsonrpc-server',
@@ -31,9 +39,7 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=[
-        'ujson<=1.35; platform_system!="Windows"',
-    ],
+    install_requires=install_requires,
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
