@@ -122,9 +122,9 @@ def test_writer_bad_message(wfile, writer):
     ))
 
     assert wfile.getvalue() in [
-        b'',
+        b''
         b'Content-Length: 10\r\n'
         b'Content-Type: application/vscode-jsonrpc; charset=utf8\r\n'
         b'\r\n'
-        b'1546304461'
-    ]
+        b'1546300861'
+        ]
