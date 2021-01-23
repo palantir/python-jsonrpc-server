@@ -1,1 +1,1 @@
-jsonrpc/_version.py export-subst
+pyls_jsonrpc/_version.py export-subst
