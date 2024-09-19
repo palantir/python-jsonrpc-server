@@ -1,0 +1,16 @@
+
+import asyncio
+from typing import Dict, Coroutine, Union, Callable, Awaitable
+
+
+class Endpoint(object):
+    def __init__(self, dispatcher: Dict[str, Union[Coroutine, Dict, None]],
+                 consumer: Coroutine,
+                 id_generator: Callable[[], str],
+                 max_workers: int = 5,
+                 loop: asyncio.BaseEventLoop = None): ...
+
+    def shutdown(self) -> None: ...
+    async def notify(self, method: str, params: Dict = None) -> None: ...
+    async def request(self, method: str, params: Dict = None) -> Awaitable: ...
+    async def consume(self, message: Dict) -> None: ...
