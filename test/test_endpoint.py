@@ -1,6 +1,7 @@
 # Copyright 2018 Palantir Technologies, Inc.
 # pylint: disable=redefined-outer-name
 from concurrent import futures
+import threading
 import time
 import mock
 import pytest
@@ -96,7 +97,7 @@ def test_request_error(endpoint, consumer):
     assert exc_info.value == error
 
 
-def test_request_cancel(endpoint, consumer):
+def test_request_cancel(endpoint, consumer, caplog):
     future = endpoint.request('methodName', {'key': 'value'})
     assert not future.done()
 
@@ -109,6 +110,8 @@ def test_request_cancel(endpoint, consumer):
 
     # Cancel the request
     future.cancel()
+    assert future.cancelled()
+    assert not [record for record in caplog.records if record.name == 'concurrent.futures']
     consumer.assert_any_call({
         'jsonrpc': '2.0',
         'method': '$/cancelRequest',
@@ -118,6 +121,25 @@ def test_request_cancel(endpoint, consumer):
     with pytest.raises((exceptions.JsonRpcException, futures.CancelledError)) as exc_info:
         assert future.result(timeout=2)
     assert exc_info.type in (exceptions.JsonRpcRequestCancelled, futures.CancelledError)
+
+
+@pytest.mark.parametrize('response', [
+    {'result': 1234},
+    {'error': exceptions.JsonRpcRequestCancelled().to_dict()},
+])
+def test_cancelled_request_ignores_response(endpoint, consumer, response):
+    future = endpoint.request('methodName')
+    assert future.cancel()
+    consumer.reset_mock()
+
+    message = {'jsonrpc': '2.0', 'id': MSG_ID}
+    message.update(response)
+    endpoint.consume(message)
+
+    assert future.cancelled()
+    consumer.assert_not_called()
+    with pytest.raises(futures.CancelledError):
+        future.result()
 
 
 def test_consume_notification(endpoint, dispatcher):
@@ -307,6 +329,60 @@ def test_consume_request_cancel(endpoint, dispatcher):
     #     'id': MSG_ID,
     #     'error': exceptions.JsonRpcRequestCancelled().to_dict()
     # })
+
+
+@pytest.mark.parametrize('cancel_mode', ['notification', 'future', 'before_dispatch'])
+def test_consume_cancelled_future(endpoint, consumer, dispatcher, cancel_mode):
+    future = futures.Future()
+    dispatcher['methodName'] = mock.Mock(return_value=future)
+    if cancel_mode == 'before_dispatch':
+        assert future.cancel()
+
+    endpoint.consume({'jsonrpc': '2.0', 'id': MSG_ID, 'method': 'methodName'})
+    if cancel_mode == 'notification':
+        endpoint.consume({'jsonrpc': '2.0', 'method': '$/cancelRequest', 'params': {'id': MSG_ID}})
+    elif cancel_mode == 'future':
+        assert future.cancel()
+
+    assert future.cancelled()
+    consumer.assert_called_once_with({
+        'jsonrpc': '2.0',
+        'id': MSG_ID,
+        'error': exceptions.JsonRpcRequestCancelled().to_dict(),
+    })
+
+
+def test_consume_cancelled_queued_request(consumer, dispatcher):
+    started = threading.Event()
+    release = threading.Event()
+    cancelled_handler = mock.Mock(return_value=1234)
+
+    def blocking_handler():
+        started.set()
+        assert release.wait(5)
+        return 5678
+
+    dispatcher['blocking'] = mock.Mock(return_value=blocking_handler)
+    dispatcher['queued'] = mock.Mock(return_value=cancelled_handler)
+    endpoint = Endpoint(dispatcher, consumer, max_workers=1)
+    try:
+        endpoint.consume({'jsonrpc': '2.0', 'id': 'blocking', 'method': 'blocking'})
+        assert started.wait(5)
+        endpoint.consume({'jsonrpc': '2.0', 'id': MSG_ID, 'method': 'queued'})
+        endpoint.consume({'jsonrpc': '2.0', 'method': '$/cancelRequest', 'params': {'id': MSG_ID}})
+
+        consumer.assert_called_once_with({
+            'jsonrpc': '2.0',
+            'id': MSG_ID,
+            'error': exceptions.JsonRpcRequestCancelled().to_dict(),
+        })
+    finally:
+        release.set()
+        endpoint.shutdown()
+
+    cancelled_handler.assert_not_called()
+    assert consumer.call_count == 2
+    consumer.assert_any_call({'jsonrpc': '2.0', 'id': 'blocking', 'result': 5678})
 
 
 def test_consume_request_cancel_unknown(endpoint):

@@ -88,7 +88,6 @@ class Endpoint(object):
         def callback(future):
             if future.cancelled():
                 self.notify(CANCEL_METHOD, {'id': request_id})
-                future.set_exception(JsonRpcRequestCancelled())
         return callback
 
     def consume(self, message):
@@ -204,9 +203,6 @@ class Endpoint(object):
             # Remove the future from the client requests map
             self._client_request_futures.pop(request_id, None)
 
-            if future.cancelled():
-                future.set_exception(JsonRpcRequestCancelled())
-
             message = {
                 'jsonrpc': JSONRPC_VERSION,
                 'id': request_id,
@@ -214,6 +210,8 @@ class Endpoint(object):
 
             try:
                 message['result'] = future.result()
+            except futures.CancelledError:
+                message['error'] = JsonRpcRequestCancelled().to_dict()
             except JsonRpcException as e:
                 log.exception("Failed to handle request %s", request_id)
                 message['error'] = e.to_dict()
@@ -231,6 +229,9 @@ class Endpoint(object):
 
         if not request_future:
             log.warning("Received response to unknown message id %s", msg_id)
+            return
+
+        if request_future.cancelled():
             return
 
         if error is not None:
